@@ -17,12 +17,26 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Install Tools & Dependencies
+      - name: Install Dependencies
         run: |
-          choco install gettext -y --no-progress
-          "C:\ProgramData\chocolatey\bin" >> $env:GITHUB_PATH
-          "C:\Program Files\Git\usr\bin" >> $env:GITHUB_PATH
           vcpkg install curl:x64-windows
+
+      - name: Install Gettext Tools
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path "C:\gettext"
+          nuget install Gettext.Tools -OutputDirectory "C:\gettext" -ExcludeVersion
+          $msgfmt = (Get-ChildItem -Path "C:\gettext" -Filter "msgfmt.exe" -Recurse | Select-Object -First 1).FullName
+          $msgmerge = (Get-ChildItem -Path "C:\gettext" -Filter "msgmerge.exe" -Recurse | Select-Object -First 1).FullName
+          $binDir = Split-Path $msgfmt -Parent
+          Write-Host "Found msgfmt at: $msgfmt"
+          Write-Host "Found msgmerge at: $msgmerge"
+          
+          $binDir >> $env:GITHUB_PATH
+          $msgfmtClean = $msgfmt.Replace('\', '/')
+          $msgmergeClean = $msgmerge.Replace('\', '/')
+          "MSGFMT_PATH=$msgfmtClean" >> $env:GITHUB_ENV
+          "MSGMERGE_PATH=$msgmergeClean" >> $env:GITHUB_ENV
 
       - name: Download precompiled wxWidgets with WebView
         shell: pwsh
@@ -50,8 +64,8 @@ jobs:
             -DwxWidgets_LIB_DIR="C:/wxWidgets/lib/vc14x_x64_dll" `
             -DwxWidgets_CONFIGURATION=mswu `
             -DwxWidgets_USE_REL_AND_DBG=0 `
-            -DGETTEXT_MSGMERGE_EXECUTABLE="C:/ProgramData/chocolatey/bin/msgmerge.exe" `
-            -DGETTEXT_MSGFMT_EXECUTABLE="C:/ProgramData/chocolatey/bin/msgfmt.exe"
+            -DGETTEXT_MSGMERGE_EXECUTABLE="$env:MSGMERGE_PATH" `
+            -DGETTEXT_MSGFMT_EXECUTABLE="$env:MSGFMT_PATH"
 
       - name: Build MoneyManagerEx
         run: |
