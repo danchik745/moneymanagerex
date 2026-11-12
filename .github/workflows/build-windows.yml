@@ -1,87 +1,79 @@
 name: Build Windows Installer (.exe)
 
 on:
-  workflow_dispatch:
   push:
-    branches: [ master, main, custom-features ]
+    branches: [ "master", "custom-features" ]
+  pull_request:
+    branches: [ "master" ]
+  workflow_dispatch:
 
 jobs:
-  build:
-    name: Build Windows x64 .exe
+  build-windows:
     runs-on: windows-2022
 
     steps:
-      - name: Checkout repository
+      - name: Checkout code
         uses: actions/checkout@v4
         with:
           submodules: recursive
-          fetch-depth: 1
 
-      - name: Setup Python and Gettext
-        shell: pwsh
+      - name: Install Tools & Dependencies
         run: |
-          echo "C:\Program Files\Git\usr\bin" >> $env:GITHUB_PATH
           choco install gettext -y --no-progress
+          "C:\ProgramData\chocolatey\bin" >> $env:GITHUB_PATH
+          "C:\Program Files\Git\usr\bin" >> $env:GITHUB_PATH
+          vcpkg install curl:x64-windows
 
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-
-      - name: Regenerate database headers
-        shell: cmd
-        run: |
-          cd src\table
-          python ..\..\util\sqlite2cpp.py ..\..\database\tables.sql
-          python ..\..\util\sqliteupgrade2cpp.py ..\..\database\incremental_upgrade
-          del tables*.sql patch*.sql 2>nul || exit 0
-
-      - name: Download Precompiled wxWidgets with WebView
+      - name: Download precompiled wxWidgets with WebView
         shell: pwsh
         run: |
-          $wxVer = "3.2.6"
-          $wxDir = "C:\wxWidgets"
-          New-Item -ItemType Directory -Force -Path $wxDir
+          New-Item -ItemType Directory -Force -Path "C:\wxWidgets"
+          cd C:\wxWidgets
+          Write-Host "Downloading wxWidgets 3.2.6..."
+          curl.exe -fsSL "https://github.com/wxWidgets/wxWidgets/releases/download/v3.2.6/wxWidgets-3.2.6-headers.7z" -o headers.7z
+          curl.exe -fsSL "https://github.com/wxWidgets/wxWidgets/releases/download/v3.2.6/wxMSW-3.2.6_vc14x_x64_Dev.7z" -o dev.7z
+          curl.exe -fsSL "https://github.com/wxWidgets/wxWidgets/releases/download/v3.2.6/wxMSW-3.2.6_vc14x_x64_ReleaseDLL.7z" -o dll.7z
           
-          Write-Host "Downloading wxWidgets..."
-          curl.exe -fsSL "https://github.com/wxWidgets/wxWidgets/releases/download/v$wxVer/wxWidgets-$wxVer-headers.7z" -o "$env:TEMP\wx_headers.7z"
-          curl.exe -fsSL "https://github.com/wxWidgets/wxWidgets/releases/download/v$wxVer/wxMSW-${wxVer}_vc14x_x64_Dev.7z" -o "$env:TEMP\wx_dev.7z"
-          curl.exe -fsSL "https://github.com/wxWidgets/wxWidgets/releases/download/v$wxVer/wxMSW-${wxVer}_vc14x_x64_ReleaseDLL.7z" -o "$env:TEMP\wx_dll.7z"
+          7z x headers.7z -y
+          7z x dev.7z -y
+          7z x dll.7z -y
           
-          7z x "$env:TEMP\wx_headers.7z" -o"$wxDir" -y | Out-Null
-          7z x "$env:TEMP\wx_dev.7z" -o"$wxDir" -y | Out-Null
-          7z x "$env:TEMP\wx_dll.7z" -o"$wxDir" -y | Out-Null
-
-          $libFolder = Get-ChildItem -Path "$wxDir\lib" -Directory | Select-Object -First 1
-          echo "WXWIN=$wxDir" >> $env:GITHUB_ENV
-          echo "wxWidgets_ROOT_DIR=$wxDir" >> $env:GITHUB_ENV
-          echo "wxWidgets_LIB_DIR=$($libFolder.FullName)" >> $env:GITHUB_ENV
-
-      - name: Install Curl and SQLite
-        run: |
-          vcpkg install curl:x64-windows sqlite3:x64-windows
+          Write-Host "wxWidgets extracted successfully!"
 
       - name: Configure CMake
         shell: pwsh
         run: |
           cmake -B build -S . `
-            -G "Visual Studio 17 2022" -A x64 `
-            -DCMAKE_TOOLCHAIN_FILE="C:/vcpkg/scripts/buildsystems/vcpkg.cmake" `
-            -DCMAKE_PREFIX_PATH="C:/wxWidgets;C:/vcpkg/installed/x64-windows" `
-            -DwxWidgets_ROOT_DIR="C:/wxWidgets" `
-            -DwxWidgets_USE_REL_AND_DBG=0 `
             -DCMAKE_BUILD_TYPE=Release `
-            -DCPACK_GENERATOR="NSIS;ZIP"
+            -DCMAKE_TOOLCHAIN_FILE="C:/vcpkg/scripts/buildsystems/vcpkg.cmake" `
+            -DwxWidgets_ROOT_DIR="C:/wxWidgets" `
+            -DwxWidgets_LIB_DIR="C:/wxWidgets/lib/vc14x_x64_dll" `
+            -DwxWidgets_CONFIGURATION=mswu `
+            -DwxWidgets_USE_REL_AND_DBG=0 `
+            -DGETTEXT_MSGMERGE_EXECUTABLE="C:/ProgramData/chocolatey/bin/msgmerge.exe" `
+            -DGETTEXT_MSGFMT_EXECUTABLE="C:/ProgramData/chocolatey/bin/msgfmt.exe"
 
-      - name: Build and Package
+      - name: Build MoneyManagerEx
         run: |
-          cmake --build build --config Release --target package
+          cmake --build build --config Release --parallel
 
-      - name: Upload Windows Artifacts
+      - name: Copy wxWidgets Runtime DLLs
+        shell: pwsh
+        run: |
+          Copy-Item "C:\wxWidgets\lib\vc14x_x64_dll\*.dll" "build\bin\Release\" -Force -ErrorAction SilentlyContinue
+
+      - name: Create Installer or Archive (.exe / .zip)
+        shell: pwsh
+        run: |
+          cd build
+          cpack -C Release -G "NSIS;ZIP"
+          Get-ChildItem -Path . -Recurse -Include *.exe, *.zip
+
+      - name: Upload Windows Executable Artifact
         uses: actions/upload-artifact@v4
         with:
           name: MoneyManagerEx-Windows-Exe
           path: |
             build/*.exe
             build/*.zip
-          if-no-files-found: warn
+            build/bin/Release/*.exe
