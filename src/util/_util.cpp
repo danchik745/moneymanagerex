@@ -1965,3 +1965,46 @@ wxChar ExtractHotkeyChar(const wxString& input, wxChar defaultChar)
         ? keyPart[0]
         : defaultChar;
 }
+
+#if defined(_MSC_VER)
+#include <vector>
+#include <wx/string.h>
+#include <stdexcept>
+
+namespace {
+    wxString* __cdecl fake_ubegin(std::vector<wxString>* v) { return v->data(); }
+    wxString* __cdecl fake_uend(std::vector<wxString>* v) { return v->data() + v->size(); }
+    const wxString* __cdecl fake_ubegin_c(const std::vector<wxString>* v) { return v->data(); }
+    const wxString* __cdecl fake_uend_c(const std::vector<wxString>* v) { return v->data() + v->size(); }
+    void __cdecl fake_buy(std::vector<wxString>* v, unsigned __int64 n) { v->reserve(n); }
+    void __cdecl fake_tidy(std::vector<wxString>* v) { v->clear(); }
+    std::allocator<wxString>& __cdecl fake_getal(std::vector<wxString>*) { static std::allocator<wxString> a; return a; }
+    unsigned __int64 __cdecl fake_growth(const std::vector<wxString>* v, unsigned __int64 n) { return v->capacity() + n; }
+    void __cdecl fake_change(std::vector<wxString>*, wxString*, unsigned __int64, unsigned __int64) {}
+    void __cdecl fake_xlen() { throw std::length_error("vector too long"); }
+}
+
+extern "C" {
+    void* p_fix_ubegin = (void*)&fake_ubegin;
+    void* p_fix_uend = (void*)&fake_uend;
+    void* p_fix_ubegin_c = (void*)&fake_ubegin_c;
+    void* p_fix_uend_c = (void*)&fake_uend_c;
+    void* p_fix_buy = (void*)&fake_buy;
+    void* p_fix_tidy = (void*)&fake_tidy;
+    void* p_fix_getal = (void*)&fake_getal;
+    void* p_fix_growth = (void*)&fake_growth;
+    void* p_fix_change = (void*)&fake_change;
+    void* p_fix_xlen = (void*)&fake_xlen;
+}
+
+#pragma comment(linker, "/ALTERNATENAME:__imp_?_Unchecked_begin@?$vector@VwxString@@V?$allocator@VwxString@@@std@@@std@@QEAAPEAVwxString@@XZ=p_fix_ubegin")
+#pragma comment(linker, "/ALTERNATENAME:__imp_?_Unchecked_end@?$vector@VwxString@@V?$allocator@VwxString@@@std@@@std@@QEAAPEAVwxString@@XZ=p_fix_uend")
+#pragma comment(linker, "/ALTERNATENAME:__imp_?_Unchecked_begin@?$vector@VwxString@@V?$allocator@VwxString@@@std@@@std@@QEBAPEBVwxString@@XZ=p_fix_ubegin_c")
+#pragma comment(linker, "/ALTERNATENAME:__imp_?_Unchecked_end@?$vector@VwxString@@V?$allocator@VwxString@@@std@@@std@@QEBAPEBVwxString@@XZ=p_fix_uend_c")
+#pragma comment(linker, "/ALTERNATENAME:__imp_?_Buy_nonzero@?$vector@VwxString@@V?$allocator@VwxString@@@std@@@std@@AEAAX_K@Z=p_fix_buy")
+#pragma comment(linker, "/ALTERNATENAME:__imp_?_Tidy@?$vector@VwxString@@V?$allocator@VwxString@@@std@@@std@@AEAAXXZ=p_fix_tidy")
+#pragma comment(linker, "/ALTERNATENAME:__imp_?_Getal@?$vector@VwxString@@V?$allocator@VwxString@@@std@@@std@@AEAAAEAV?$allocator@VwxString@@@2@XZ=p_fix_getal")
+#pragma comment(linker, "/ALTERNATENAME:__imp_?_Calculate_growth@?$vector@VwxString@@V?$allocator@VwxString@@@std@@@std@@AEBA_K_K@Z=p_fix_growth")
+#pragma comment(linker, "/ALTERNATENAME:__imp_?_Change_array@?$vector@VwxString@@V?$allocator@VwxString@@@std@@@std@@AEAAXQEAVwxString@@_K1@Z=p_fix_change")
+#pragma comment(linker, "/ALTERNATENAME:__imp_?_Xlength@?$vector@VwxString@@V?$allocator@VwxString@@@std@@@std@@CAXXZ=p_fix_xlen")
+#endif
