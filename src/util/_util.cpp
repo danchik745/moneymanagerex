@@ -921,6 +921,9 @@ bool get_yahoo_prices(
     wxString& output,
     int type
 ) {
+// Disabled external Yahoo Finance network queries (offline privacy mode)
+    output = _t("Quotes from Yahoo Finance are disabled in offline mode.");
+    return false;
     double conversion_factor = 1.0;
     wxString buffer;
 

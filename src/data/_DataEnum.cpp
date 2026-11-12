@@ -92,12 +92,10 @@ mmChoiceKeyNameA TrxType::s_choice_a = mmChoiceKeyNameA({
 }, e_withdrawal, true);
 
 mmChoiceKeyKeyNameA TrxStatus::s_choice_a = mmChoiceKeyKeyNameA({
-    { e_unreconciled, "",  "Unreconciled", _n("Unreconciled") },
     { e_reconciled,   "R", "Reconciled",   _n("Reconciled") },
-    { e_void,         "V", "Void",         _n("Void") },
     { e_followup,     "F", "Follow Up",    _n("Follow Up") },
     { e_duplicate,    "D", "Duplicate",    _n("Duplicate") },
-}, e_unreconciled, true);
+}, e_reconciled, true);
 
 mmChoiceCodeNameA RepeatMode::s_choice_a = mmChoiceCodeNameA({
     { e_none,      0, _n("Manual") },
