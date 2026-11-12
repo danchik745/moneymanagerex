@@ -72,12 +72,6 @@ void mmColorButton::onMenuSelected(wxCommandEvent& event)
     event.Skip();
 }
 
-void mmColorButton::onMenuSelected(wxCommandEvent& event)
-{
-    SetColor(event.GetId() - wxID_HIGHEST);
-    event.Skip();
-}
-
 void mmColorButton::onColourButton(wxCommandEvent& event)
 {
     wxColour selected_color = wxGetColourFromUser(this, GetBackgroundColour());
