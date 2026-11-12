@@ -30,6 +30,7 @@
 #endif
 
 #include <wx/app.h>
+#include <wx/arrstr.h>
 #include <wx/bmpcbox.h>
 #include <wx/calctrl.h>
 #include <wx/choice.h>
