@@ -1,0 +1,56 @@
+name: Build Windows Installer (.exe)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ master, main, custom-features ]
+
+jobs:
+  build:
+    name: Build Windows x64 .exe
+    runs-on: windows-2022
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 1
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Regenerate database headers
+        shell: cmd
+        run: |
+          cd src\table
+          python ..\..\util\sqlite2cpp.py ..\..\database\tables.sql
+          python ..\..\util\sqliteupgrade2cpp.py ..\..\database\incremental_upgrade
+          del tables*.sql patch*.sql 2>nul || exit 0
+
+      - name: Install Dependencies
+        shell: bash
+        run: |
+          vcpkg install wxwidgets:x64-windows curl:x64-windows sqlite3:x64-windows
+
+      - name: Configure CMake
+        run: |
+          cmake -B build -S . `
+            -DCMAKE_TOOLCHAIN_FILE="C:/vcpkg/scripts/buildsystems/vcpkg.cmake" `
+            -DVCPKG_TARGET_TRIPLET="x64-windows" `
+            -DCMAKE_BUILD_TYPE=Release `
+            -DCPACK_GENERATOR="NSIS;ZIP"
+
+      - name: Build and Package
+        run: |
+          cmake --build build --config Release --target package
+
+      - name: Upload Windows Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: MoneyManagerEx-Windows-Exe
+          path: |
+            build/*.exe
+            build/*.zip
