@@ -37,7 +37,7 @@ jobs:
           $wxDir = "C:\wxWidgets"
           New-Item -ItemType Directory -Force -Path $wxDir
           
-          Write-Host "Downloading official wxWidgets with WebView..."
+          Write-Host "Downloading wxWidgets..."
           curl.exe -fsSL "https://github.com/wxWidgets/wxWidgets/releases/download/v$wxVer/wxWidgets-$wxVer-headers.7z" -o "$env:TEMP\wx_headers.7z"
           curl.exe -fsSL "https://github.com/wxWidgets/wxWidgets/releases/download/v$wxVer/wxMSW-${wxVer}_vc14x_x64_Dev.7z" -o "$env:TEMP\wx_dev.7z"
           curl.exe -fsSL "https://github.com/wxWidgets/wxWidgets/releases/download/v$wxVer/wxMSW-${wxVer}_vc14x_x64_ReleaseDLL.7z" -o "$env:TEMP\wx_dll.7z"
@@ -45,9 +45,14 @@ jobs:
           7z x "$env:TEMP\wx_headers.7z" -o"$wxDir" -y | Out-Null
           7z x "$env:TEMP\wx_dev.7z" -o"$wxDir" -y | Out-Null
           7z x "$env:TEMP\wx_dll.7z" -o"$wxDir" -y | Out-Null
+
+          # Find exact lib folder name
+          $libFolder = Get-ChildItem -Path "$wxDir\lib" -Directory | Select-Object -First 1
+          Write-Host "Found lib folder: $($libFolder.FullName)"
           
-          echo "wxWidgets_ROOT_DIR=$wxDir" >> $env:GITHUB_ENV
           echo "WXWIN=$wxDir" >> $env:GITHUB_ENV
+          echo "wxWidgets_ROOT_DIR=$wxDir" >> $env:GITHUB_ENV
+          echo "wxWidgets_LIB_DIR=$($libFolder.FullName)" >> $env:GITHUB_ENV
 
       - name: Install Curl and SQLite
         run: |
@@ -59,8 +64,9 @@ jobs:
           cmake -B build -S . `
             -G "Visual Studio 17 2022" -A x64 `
             -DCMAKE_TOOLCHAIN_FILE="C:/vcpkg/scripts/buildsystems/vcpkg.cmake" `
+            -DCMAKE_PREFIX_PATH="C:/wxWidgets;C:/vcpkg/installed/x64-windows" `
             -DwxWidgets_ROOT_DIR="C:/wxWidgets" `
-            -DwxWidgets_LIB_DIR="C:/wxWidgets/lib/vc_x64_dll" `
+            -DwxWidgets_USE_REL_AND_DBG=0 `
             -DCMAKE_BUILD_TYPE=Release `
             -DCPACK_GENERATOR="NSIS;ZIP"
 
