@@ -72,19 +72,20 @@ void mmColorButton::onMenuSelected(wxCommandEvent& event)
     event.Skip();
 }
 
+void mmColorButton::onMenuSelected(wxCommandEvent& event)
+{
+    SetColor(event.GetId() - wxID_HIGHEST);
+    event.Skip();
+}
+
 void mmColorButton::onColourButton(wxCommandEvent& event)
 {
-    wxColour selected_color = wxGetColourFromUser(this, GetBackgroundColour(), _t("Choose Color (RGB)"));
+    wxColour selected_color = wxGetColourFromUser(this, GetBackgroundColour());
     if (selected_color.IsOk()) {
         SetBackgroundColour(selected_color);
         m_color_id = (selected_color.Red() << 16) | (selected_color.Green() << 8) | selected_color.Blue();
         Refresh();
     }
-    event.Skip();
-}
-    }
-
-    PopupMenu(&mainMenu);
     event.Skip();
 }
 
