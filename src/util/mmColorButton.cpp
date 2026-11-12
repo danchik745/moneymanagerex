@@ -24,6 +24,7 @@
 #include "base/mmUserColor.h"
 #include "mmImage.h"
 #include "_primitive.h"
+#include <wx/colordlg.h>
 
 wxBEGIN_EVENT_TABLE(mmColorButton, wxButton)
     EVT_MENU(wxID_ANY,   mmColorButton::onMenuSelected)
@@ -73,41 +74,14 @@ void mmColorButton::onMenuSelected(wxCommandEvent& event)
 
 void mmColorButton::onColourButton(wxCommandEvent& event)
 {
-    wxMenu mainMenu;
-    wxMenuItem* menuItem = new wxMenuItem(
-        &mainMenu, wxID_HIGHEST,
-        m_noColorAllowed
-            ? wxString::Format(_t("&Without color"))
-            : wxString::Format(_t("&Clear color"), 0)
-    );
-    mainMenu.Append(menuItem);
-
-    for (int i = 1; i <= 7; ++i) {
-        menuItem = new wxMenuItem(
-            &mainMenu, wxID_HIGHEST + i,
-            wxString::Format(_t("Color #&%i"), i)
-        );
-#ifdef __WXMSW__
-        menuItem->SetBackgroundColour(mmUserColor::getId(i)); //only available for the wxMSW port.
-        menuItem->SetTextColour(*mmUserColor::bestFontColor(mmUserColor::getId(i)));
-#endif
-        wxBitmap bitmap(mmImage::bitmapBundle(
-            mmImage::png::EMPTY,
-            mmImage::bitmapButtonSize).GetDefaultSize()
-        );
-        wxMemoryDC memoryDC(bitmap);
-
-        memoryDC.SetBackground(wxBrush(mmUserColor::getId(i)));
-        memoryDC.Clear();
-        memoryDC.DrawBitmap(mmImage::bitmapBundle(
-            mmImage::png::EMPTY,
-            mmImage::bitmapButtonSize).GetBitmap(wxDefaultSize),
-            0, 0, true
-        );
-        memoryDC.SelectObject(wxNullBitmap);
-        menuItem->SetBitmap(bitmap);
-
-        mainMenu.Append(menuItem);
+    wxColour selected_color = wxGetColourFromUser(this, GetBackgroundColour(), _t("Choose Color (RGB)"));
+    if (selected_color.IsOk()) {
+        SetBackgroundColour(selected_color);
+        m_color_id = (selected_color.Red() << 16) | (selected_color.Green() << 8) | selected_color.Blue();
+        Refresh();
+    }
+    event.Skip();
+}
     }
 
     PopupMenu(&mainMenu);

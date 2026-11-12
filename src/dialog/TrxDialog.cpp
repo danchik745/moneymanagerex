@@ -936,7 +936,7 @@ bool TrxDialog::validateData()
     }
 
     int color_id = w_color_btn->GetColorId();
-    if (color_id > 0 && color_id < 8)
+    if (color_id > 0)
         m_journal_d.m_color = color_id;
     else
         m_journal_d.m_color = -1;

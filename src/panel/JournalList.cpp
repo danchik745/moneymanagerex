@@ -336,9 +336,19 @@ wxListItemAttr* JournalList::OnGetItemAttr(long item) const
 
     // apply alternating background pattern
     int user_color_id = m_journal_xa[item].m_color.GetValue();
-    if (user_color_id < 0 || user_color_id > 7) {
-        user_color_id = 0;
-    }
+if (user_color_id > 7) {
+    static wxDataViewItemAttr custom_attr;
+    wxColour rgb_col(
+        (user_color_id >> 16) & 0xFF,
+        (user_color_id >> 8) & 0xFF,
+        user_color_id & 0xFF
+    );
+    custom_attr.SetBackgroundColour(rgb_col);
+    return &custom_attr;
+}
+if (user_color_id < 0) {
+    user_color_id = 0;
+}
     switch (user_color_id)
     {
     case 0:
