@@ -38,9 +38,9 @@ jobs:
           New-Item -ItemType Directory -Force -Path $wxDir
           
           Write-Host "Downloading official wxWidgets with WebView..."
-          Invoke-WebRequest -Uri "https://github.com/wxWidgets/wxWidgets/releases/download/v$wxVer/wxWidgets-${wxVer}_Headers.7z" -OutFile "$env:TEMP\wx_headers.7z"
-          Invoke-WebRequest -Uri "https://github.com/wxWidgets/wxWidgets/releases/download/v$wxVer/wxMSW-${wxVer}_vc14x_x64_Dev.7z" -OutFile "$env:TEMP\wx_dev.7z"
-          Invoke-WebRequest -Uri "https://github.com/wxWidgets/wxWidgets/releases/download/v$wxVer/wxMSW-${wxVer}_vc14x_x64_ReleaseDLL.7z" -OutFile "$env:TEMP\wx_dll.7z"
+          curl.exe -fsSL "https://github.com/wxWidgets/wxWidgets/releases/download/v$wxVer/wxWidgets-$wxVer-headers.7z" -o "$env:TEMP\wx_headers.7z"
+          curl.exe -fsSL "https://github.com/wxWidgets/wxWidgets/releases/download/v$wxVer/wxMSW-${wxVer}_vc14x_x64_Dev.7z" -o "$env:TEMP\wx_dev.7z"
+          curl.exe -fsSL "https://github.com/wxWidgets/wxWidgets/releases/download/v$wxVer/wxMSW-${wxVer}_vc14x_x64_ReleaseDLL.7z" -o "$env:TEMP\wx_dll.7z"
           
           7z x "$env:TEMP\wx_headers.7z" -o"$wxDir" -y | Out-Null
           7z x "$env:TEMP\wx_dev.7z" -o"$wxDir" -y | Out-Null
