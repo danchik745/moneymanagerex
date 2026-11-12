@@ -17,6 +17,12 @@ jobs:
           submodules: recursive
           fetch-depth: 1
 
+      - name: Setup Python and Gettext
+        shell: pwsh
+        run: |
+          echo "C:\Program Files\Git\usr\bin" >> $env:GITHUB_PATH
+          choco install gettext -y --no-progress
+
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
@@ -46,10 +52,7 @@ jobs:
           7z x "$env:TEMP\wx_dev.7z" -o"$wxDir" -y | Out-Null
           7z x "$env:TEMP\wx_dll.7z" -o"$wxDir" -y | Out-Null
 
-          # Find exact lib folder name
           $libFolder = Get-ChildItem -Path "$wxDir\lib" -Directory | Select-Object -First 1
-          Write-Host "Found lib folder: $($libFolder.FullName)"
-          
           echo "WXWIN=$wxDir" >> $env:GITHUB_ENV
           echo "wxWidgets_ROOT_DIR=$wxDir" >> $env:GITHUB_ENV
           echo "wxWidgets_LIB_DIR=$($libFolder.FullName)" >> $env:GITHUB_ENV
