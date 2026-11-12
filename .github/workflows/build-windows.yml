@@ -30,16 +30,37 @@ jobs:
           python ..\..\util\sqliteupgrade2cpp.py ..\..\database\incremental_upgrade
           del tables*.sql patch*.sql 2>nul || exit 0
 
-      - name: Install Dependencies
-        shell: bash
+      - name: Download Precompiled wxWidgets with WebView
+        shell: pwsh
         run: |
-          vcpkg install wxwidgets:x64-windows curl:x64-windows sqlite3:x64-windows
+          $wxVer = "3.2.6"
+          $wxDir = "C:\wxWidgets"
+          New-Item -ItemType Directory -Force -Path $wxDir
+          
+          Write-Host "Downloading official wxWidgets with WebView..."
+          Invoke-WebRequest -Uri "https://github.com/wxWidgets/wxWidgets/releases/download/v$wxVer/wxWidgets-${wxVer}_Headers.7z" -OutFile "$env:TEMP\wx_headers.7z"
+          Invoke-WebRequest -Uri "https://github.com/wxWidgets/wxWidgets/releases/download/v$wxVer/wxMSW-${wxVer}_vc14x_x64_Dev.7z" -OutFile "$env:TEMP\wx_dev.7z"
+          Invoke-WebRequest -Uri "https://github.com/wxWidgets/wxWidgets/releases/download/v$wxVer/wxMSW-${wxVer}_vc14x_x64_ReleaseDLL.7z" -OutFile "$env:TEMP\wx_dll.7z"
+          
+          7z x "$env:TEMP\wx_headers.7z" -o"$wxDir" -y | Out-Null
+          7z x "$env:TEMP\wx_dev.7z" -o"$wxDir" -y | Out-Null
+          7z x "$env:TEMP\wx_dll.7z" -o"$wxDir" -y | Out-Null
+          
+          echo "wxWidgets_ROOT_DIR=$wxDir" >> $env:GITHUB_ENV
+          echo "WXWIN=$wxDir" >> $env:GITHUB_ENV
+
+      - name: Install Curl and SQLite
+        run: |
+          vcpkg install curl:x64-windows sqlite3:x64-windows
 
       - name: Configure CMake
+        shell: pwsh
         run: |
           cmake -B build -S . `
+            -G "Visual Studio 17 2022" -A x64 `
             -DCMAKE_TOOLCHAIN_FILE="C:/vcpkg/scripts/buildsystems/vcpkg.cmake" `
-            -DVCPKG_TARGET_TRIPLET="x64-windows" `
+            -DwxWidgets_ROOT_DIR="C:/wxWidgets" `
+            -DwxWidgets_LIB_DIR="C:/wxWidgets/lib/vc_x64_dll" `
             -DCMAKE_BUILD_TYPE=Release `
             -DCPACK_GENERATOR="NSIS;ZIP"
 
@@ -54,3 +75,4 @@ jobs:
           path: |
             build/*.exe
             build/*.zip
+          if-no-files-found: warn
